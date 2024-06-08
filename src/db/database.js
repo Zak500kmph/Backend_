@@ -3,10 +3,10 @@ import { BACKEND_db } from "../constants.js";
 const Database=async ()=>{
     try{
     const connectionInstance=await mongoose.connect(`${process.env.MONGODB_url}/${BACKEND_db}`)
-    console.log(`Database is connected ${connectionInstance}`)
+    console.log(`Database is connected ${connectionInstance.connection.host}`)
     }catch(error){
     console.log(`ERROR HAS OCCURED zz : ${error}`)
-    process.send(1)
+    process.exit(1)
     }
 }
 export default Database
