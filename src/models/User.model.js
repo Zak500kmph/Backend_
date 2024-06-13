@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
-import mongooseAggregatePaginate from "mongooose-aggregate-paginate-v2"
+import bcrypt from "bcrypt"
+import jwt from "jsonwebtoken"
 const Users=mongoose.Schema({
      username:{
         type:String,
@@ -42,5 +43,29 @@ const Users=mongoose.Schema({
         ]
         
         },{timestamps:true})
-Users.plugin(mongooseAggregatePaginate)  
+Users.pre("save",function (next){
+   if(this.isModified("password")){
+      this.password=bcrypt.hash(this.password,10)
+   next()
+   }
+   next()
+})
+User.methods.isPasswordCorrect=async function (password_input){
+return await bcrypt.compare(password_input,this.password)// it return true if inputpassword == encrptpassword
+} 
+User.methods.generateAccesToken=async function (){
+   return await jwt.sign({
+      id:this._id,
+      email:this.email,
+      fullName:this.fullName
+   },process.env.ACCESS_TOKEN_SECRET,{expiresIn:process.env.ACCESS_TOKEN_EXPIRY}) 
+} 
+
+User.methods.generateRefreshToken=async function (){
+   return await jwt.sign({
+      id:this._id,
+      email:this.email,
+      fullName:this.fullName
+   },process.env.REFRESH_TOKEN_SECRET,{expiresIn:process.env.REFRESH_TOKEN_EXPIRY}) 
+} 
 export const User=mongoose.model("User",Users)

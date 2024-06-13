@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
-import bcrypt from "bcrypt"
+import mongooseAggregatePaginate from "mongooose-aggregate-paginate-v2"
+
 const video=mongoose.Schema({
     videoFile:{
         type:String,
@@ -32,5 +33,5 @@ const video=mongoose.Schema({
 
 
 },{timestamps:true})
-
+video.plugin(mongooseAggregatePaginate)  
 export const Video=mongoose.model("Video",video)
