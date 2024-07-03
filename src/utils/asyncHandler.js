@@ -1,10 +1,15 @@
-const asyncHandler=(fn)=>async (req,res,next)=>{
+
+
+const asyncHandler = (fn) => async (req,res,next) => {
     try {
-       return  await fn(res,req,next)
+      await fn(req, res, next);
     } catch (error) {
-        console.log("hey an Error is occured at our End")
-        return app.send(error)
-        
+      next(error);
     }
-}
+  };
+// const asyncHandler=(fn)=>()=>{
+//     (req,res,next)=>{
+//     Promise.resolve(fn(res,req,next)).catch((err)=>console.log("Error Occur !!!!!!!!!!!1"))
+//     }
+// }
 export {asyncHandler}

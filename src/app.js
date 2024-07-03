@@ -17,6 +17,8 @@ import userRouter from "./routes/User.routes.js"
 
 //route declaration
 app.use("/api/v1/users",userRouter)
+app.get("/check",(req,res)=>{res.send("hey")})
 
+app.listen(process.env.PORT,()=>{console.log(`the port is running ${process.env.PORT}`)})
 
 export default app;
