@@ -43,17 +43,17 @@ const Users=mongoose.Schema({
         ]
         
         },{timestamps:true})
-Users.pre("save",function (next){
+Users.pre("save",async function (next){
    if(this.isModified("password")){
-      this.password=bcrypt.hash(this.password,10)
+      this.password=await bcrypt.hash(this.password,10)
    next()
    }
    next()
 })
-User.methods.isPasswordCorrect=async function (password_input){
+Users.methods.isPasswordCorrect=async function (password_input){
 return await bcrypt.compare(password_input,this.password)// it return true if inputpassword == encrptpassword
 } 
-User.methods.generateAccesToken=async function (){
+Users.methods.generateAccesToken=async function (){
    return await jwt.sign({
       id:this._id,
       email:this.email,
@@ -61,7 +61,7 @@ User.methods.generateAccesToken=async function (){
    },process.env.ACCESS_TOKEN_SECRET,{expiresIn:process.env.ACCESS_TOKEN_EXPIRY}) 
 } 
 
-User.methods.generateRefreshToken=async function (){
+Users.methods.generateRefreshToken=async function (){
    return await jwt.sign({
       id:this._id,
       email:this.email,
