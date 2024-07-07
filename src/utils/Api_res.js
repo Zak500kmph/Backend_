@@ -1,13 +1,14 @@
 class Api_res{
     constructor(
         statusCode
-        ,body
+        ,data
         ,message
     ){
         this.statusCode=statusCode,
-        this.body=body,
+        this.data=data,
         this.message=message,
         this.success=statusCode<400
 
     }
 }
+export {Api_res}

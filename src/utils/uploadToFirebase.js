@@ -1,38 +1,42 @@
-import { initializeApp } from 'firebase/app';
-import 'firebase/storage';
-import "dotenv/config";
-import fs from "fs"
+// firebaseAdmin.js
+import admin from 'firebase-admin';
+import { readFile } from 'fs/promises';
+import { uuid } from 'uuidv4';
+import fs from 'fs'
+const serviceAccount = JSON.parse(
+  await readFile(
+    new URL("../sensitive_info/backend-c5d4f-firebase-adminsdk-46cy4-4ee665659d.json", import.meta.url)
+  )
+); // Update the path to your service account key JSON file
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: 'backend-c5d4f.appspot.com' // Replace with your Firebase Storage bucket name
+});
 
-const firebaseConfig = {
-  apiKey: process.env.API_KEY,
-  authDomain: process.env.AUTH_DOMAIN,
-  projectId: process.env.PROJECT_ID,
-  storageBucket: process.env.STORAGE_BUCKET,
-  messagingSenderId: process.env.MESSAGING_SENDER_ID,
-  appId: process.env.APP_ID,
-  measurementId: process.env.MEASUREMENT_ID
-};
+const bucket = admin.storage().bucket();
 
-initializeApp(firebaseConfig);
+uuid()
+async function uploadToFirebase(localFilePath,firebaseFilePath){
+  try{
+  await bucket.upload(localFilePath, {
+    destination: firebaseFilePath,
+    metadata: {
+      metadata: {
+        firebaseStorageDownloadTokens: uuid,
+      },
+    },
+  });
+  const file = bucket.file(firebaseFilePath);
+  const [displayUrl] = await file.getSignedUrl({
+    action: 'read',
+    expires: '03-01-2500' // Expires far in the future or according to your requirements
+  });
 
-// Function to upload file to Firebase Storage
-const uploadToFirebase = async (fileUrl,name) => {
-  try {
-    if (!fileUrl) return null;
-    const response = await fetch(fileUrl);
-    const fileBuffer = await response.arrayBuffer();
-
-    const storageRef = firebase.storage().ref(`random/${name}`);
-    await storageRef.put(fileBuffer);
-
-    // Optionally, get the download URL for the uploaded file
-    const downloadURL = await storageRef.getDownloadURL();
-    return downloadURL;
-  } catch (err) {
-    console.error('Error uploading file:', err.message);
-    fs.unlink(fileUrl)
-    return null
-  }
-};
-
+  fs.unlinkSync(localFilePath)
+  return displayUrl
+}
+catch(error){
+  fs.unlinkSync(localFilePath)
+}
+}
 export { uploadToFirebase };

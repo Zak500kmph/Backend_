@@ -18,7 +18,7 @@ const Users=mongoose.Schema({
         required:true,
         unique:true
      },
-     avtar:{
+     avatar:{
         type:String,//comes from cloud
         required:true
      },
@@ -32,7 +32,6 @@ const Users=mongoose.Schema({
      },
      refreshToken:{
         type:String,
-        required:true
      },
      watchHistory:
         [
