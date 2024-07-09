@@ -32,6 +32,7 @@ const Users=mongoose.Schema({
      },
      refreshToken:{
         type:String,
+        
      },
      watchHistory:
         [
