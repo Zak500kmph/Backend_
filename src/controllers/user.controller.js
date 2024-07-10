@@ -4,6 +4,9 @@ import {User} from "../models/User.model.js"
 import {uploadToFirebase} from "../utils/uploadToFirebase.js"
 import { Api_res } from "../utils/Api_res.js";
 import { refreshToken } from "firebase-admin/app";
+import jwt from "jsonwebtoken"
+
+
 const generateRefreshAccessToken=async (userId)=>{
    const user=await User.findById(userId)
    const refreshToken=await user.generateRefreshToken()
@@ -101,7 +104,7 @@ const logoutUser=asyncHandler(async (req,res)=>{
    //  newUser.refreshToken=""
    //  newUser.save({validateBeforeSave:false})  Another Method
 
-   const newUser=User.findByIdAndUpdate(req._id,{
+   User.findByIdAndUpdate(req._id,{
       $set:{
          refreshToken:undefined
       }
@@ -114,5 +117,17 @@ const logoutUser=asyncHandler(async (req,res)=>{
     }
     res.status(200).clearCookie("accessToken",options).clearCookie("refreshToken",options).json(new Api_res(200,{},"User logged out"))
 })
-
-export {registerUser,loginUser,logoutUser}
+const RefreshAccessToken=asyncHandler(async (req,res)=>{
+   
+ const refreshTokenOld=req.cookies?.refreshToken ;
+ if(!refreshTokenOld){throw new ApiError("invalid request",400)}
+const info=jwt.verify(refreshTokenOld,process.env.REFRESH_TOKEN_SECRET);
+if(!info){throw new ApiError("invalid token",400)}
+const {accsessToken,refreshToken}=await generateRefreshAccessToken(info.id);
+ const options={
+   httpOnly:true,
+   secure:true
+ }
+ res.status(200).cookie("accessToken",accsessToken,options).cookie("refreshToken",refreshToken,options).json(new Api_res(200,{accsessToken,refreshToken},"Generation of access and refresh token is successfull"))
+})
+export {registerUser,loginUser,logoutUser,RefreshAccessToken}
