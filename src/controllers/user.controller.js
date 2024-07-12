@@ -119,7 +119,7 @@ const logoutUser=asyncHandler(async (req,res)=>{
 })
 const RefreshAccessToken=asyncHandler(async (req,res)=>{
    
- const refreshTokenOld=req.cookies?.refreshToken ;
+ const refreshTokenOld=req.cookies?.refreshToken|| req.body.refreshToken ;
  if(!refreshTokenOld){throw new ApiError("invalid request",400)}
 const info=jwt.verify(refreshTokenOld,process.env.REFRESH_TOKEN_SECRET);
 if(!info){throw new ApiError("invalid token",400)}
@@ -130,4 +130,77 @@ const {accsessToken,refreshToken}=await generateRefreshAccessToken(info.id);
  }
  res.status(200).cookie("accessToken",accsessToken,options).cookie("refreshToken",refreshToken,options).json(new Api_res(200,{accsessToken,refreshToken},"Generation of access and refresh token is successfull"))
 })
-export {registerUser,loginUser,logoutUser,RefreshAccessToken}
+const changeUserCurrentPassword=asyncHandler(async(req,res)=>{
+   const {newPassword,oldPassword}=req.body
+   
+   if(!(newPassword||oldPassword)){
+      throw new ApiError("Both OLD and NEW password are required",404)
+
+   }
+const user=await User.findById(req.user._id)
+
+const isPasswordCorrect=await user.isPasswordCorrect(oldPassword)
+ if(!isPasswordCorrect)
+   {throw new ApiError("Enter correct old password",400)}
+
+ user.password=newPassword
+
+ await user.save({validateBeforeSave:false})
+
+
+return res.status(200).json({"message":"password change successfully"})
+})
+const getUser=asyncHandler(async(req,res)=>{
+   res.status(200).json(new Api_res(200,req.user,"User fecthed successfully !!"))
+})
+const updateUserCredential=asyncHandler(async (req,res)=>{
+   const user=req.user
+   const {username,fullName,email}=req.body
+   if(username){
+     user.username=username;
+   }
+   if(fullName){
+   user.fullName=fullName;
+   }
+   if(email){
+
+      user.email=email;
+   }
+   await user.save({validateBeforeSave:false})
+   res.status(200).json(
+      new Api_res(200,{},"Credentiall successfully changed")
+   )
+})
+const changeUserAvatar=asyncHandler(async (req,res)=>{
+   const newAvatar=req.file.path
+   const Firebasefilepath_avatar=req.file.originalname 
+   const avatar=await uploadToFirebase(newAvatar,Firebasefilepath_avatar)
+   await User.findByIdAndUpdate(req.user._id,{
+      $set:{
+         avatar
+      }
+   })
+   res.status(200).json({"message":"Avatar is successfully cahnged!!!!!!!!!!!!"})
+})
+const updateUserCoverImage=asyncHandler(async (req,res)=>{
+   console.log("zero")
+   const coverImage=req.file.path
+   const coverImageFirebasePath=req.file.originalname
+   const coverImageNew=await uploadToFirebase(coverImage,coverImageFirebasePath);
+   await User.findByIdAndUpdate(req.user._id,{
+      $set:{
+         coverImage
+      }
+   })
+  res.status(200).json({"message":"CoverImage is Successfully uploaded"})
+})
+export {registerUser
+        ,loginUser
+        ,logoutUser
+        ,RefreshAccessToken,
+        changeUserCurrentPassword,
+        getUser,
+        updateUserCredential,
+        changeUserAvatar,
+        updateUserCoverImage
+      }

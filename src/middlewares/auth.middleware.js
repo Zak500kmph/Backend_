@@ -16,6 +16,7 @@ const verifyJWT=async (req,_,next)=>{
         next()
     
     } catch (err) {
+        console.log("error")
         throw new ApiError(err.message,400)
     }
 }
