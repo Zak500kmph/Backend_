@@ -5,6 +5,7 @@ import {uploadToFirebase} from "../utils/uploadToFirebase.js"
 import { Api_res } from "../utils/Api_res.js";
 import { refreshToken } from "firebase-admin/app";
 import jwt from "jsonwebtoken"
+import { Subscription } from "../models/Subscriber.model.js";
 
 
 const generateRefreshAccessToken=async (userId)=>{
@@ -186,6 +187,7 @@ const updateUserCoverImage=asyncHandler(async (req,res)=>{
    console.log("zero")
    const coverImage=req.file.path
    const coverImageFirebasePath=req.file.originalname
+
    const coverImageNew=await uploadToFirebase(coverImage,coverImageFirebasePath);
    await User.findByIdAndUpdate(req.user._id,{
       $set:{
@@ -194,6 +196,66 @@ const updateUserCoverImage=asyncHandler(async (req,res)=>{
    })
   res.status(200).json({"message":"CoverImage is Successfully uploaded"})
 })
+const getUserInfo=asyncHandler(async (req,res)=>{
+   const {username}=req.param
+   if(!username){
+      throw new ApiError("Invalid Request",404)
+   }
+  const channel=await User.aggregate([
+   {
+      $match:{username:username?.toLowerCase()}
+   },
+   {
+      $lookup:{
+         from:"subscriptions", // people who subscribe the channel
+         localfield:"_id",    // here in subscription both channel and subcriber is User so the also conatin _id field
+         foreignField:"channel" // if we select the particular channel and count its occurence it will give the count of user as channel is same but different subscriber
+         ,as:"subscribers" 
+      }
+   },
+   {
+      $lookup:{
+         from:"subscriptions",
+         localfield:"_id",
+         foreignField:"subscriber", // here consider subcriber same all the documnet is come with subscriber and channel detail 
+         as :"toSubscribe"
+      },
+   },
+   {
+         $addFields:{
+            channelsSubscribed:{ $size:"$toSubscribe" },
+            channelsubscribers:{ $size:"$subscribers" },
+            isSubscribe:{
+               $cond:{
+                  if:{$in:[req.user?._id,"$subscribers.subscriber"]},
+                  then:true,
+                  else:false
+               }
+            }
+         }
+   },
+   {
+      $project:{
+         username:1,
+         email:1,
+         coverImage:1,
+         avatar:1,
+         channelsSubscribed:1,
+         channelsubscribers:1,
+         isSubscribe:1
+
+
+
+      }
+   }
+
+  ])
+  if(channel.length==0){
+   throw new ApiError("Invalid User",404)
+}
+res.status(200).json( new Api_res(200,channel[0],"the info of user"))
+})
+
 export {registerUser
         ,loginUser
         ,logoutUser
@@ -202,5 +264,6 @@ export {registerUser
         getUser,
         updateUserCredential,
         changeUserAvatar,
-        updateUserCoverImage
+        updateUserCoverImage,
+        getUserInfo
       }
