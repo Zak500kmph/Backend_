@@ -34,13 +34,11 @@ const Users=mongoose.Schema({
         type:String,
         
      },
-     watchHistory:
-        [
-            {
+     watchHistory:[{
             type:mongoose.Schema.Types.ObjectId,
              ref:"Video"
-            }
-        ]
+            }]
+        
         
         },{timestamps:true})
 Users.pre("save",async function (next){

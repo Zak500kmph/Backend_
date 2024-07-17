@@ -199,6 +199,7 @@ const updateUserCoverImage=asyncHandler(async (req,res)=>{
 const getUserInfo=asyncHandler(async (req,res)=>{
    const {username}=req.param
    if(!username){
+
       throw new ApiError("Invalid Request",404)
    }
   const channel=await User.aggregate([
@@ -208,7 +209,7 @@ const getUserInfo=asyncHandler(async (req,res)=>{
    {
       $lookup:{
          from:"subscriptions", // people who subscribe the channel
-         localfield:"_id",    // here in subscription both channel and subcriber is User so the also conatin _id field
+         localField:"_id",    // here in subscription both channel and subcriber is User so the also conatin _id field
          foreignField:"channel" // if we select the particular channel and count its occurence it will give the count of user as channel is same but different subscriber
          ,as:"subscribers" 
       }
@@ -216,7 +217,7 @@ const getUserInfo=asyncHandler(async (req,res)=>{
    {
       $lookup:{
          from:"subscriptions",
-         localfield:"_id",
+         localField:"_id",
          foreignField:"subscriber", // here consider subcriber same all the documnet is come with subscriber and channel detail 
          as :"toSubscribe"
       },
@@ -255,7 +256,46 @@ const getUserInfo=asyncHandler(async (req,res)=>{
 }
 res.status(200).json( new Api_res(200,channel[0],"the info of user"))
 })
+const getUserhistory=asyncHandler(async (req,res)=>{
+const History=User.aggregate([
+   {
+      $match:
+      {username:req.user?.username?.toLowerCase()
 
+      }
+   },
+   {
+      $lookup:{
+         from:"videos",
+         foreignField:"_id",
+         localField:"watchHistory",
+         as:"UserHistory",
+         pipeline:[
+            {
+               $lookup:{
+                  from:"User",
+                  localField:"owner",
+                  foreignField:"_id",
+                  as:"userInfo",
+                  pipeline:[
+                     {
+                        project:{
+                           username:1,
+                           email:1,
+                           fullName:1,
+                           avatar:1
+                        }
+                     }
+                  ]
+               }
+            }
+         ]
+      }
+   }
+])
+return res.status(200).json(200,History,"User History")
+
+})
 export {registerUser
         ,loginUser
         ,logoutUser
@@ -265,5 +305,6 @@ export {registerUser
         updateUserCredential,
         changeUserAvatar,
         updateUserCoverImage,
-        getUserInfo
+        getUserInfo,
+        getUserhistory
       }

@@ -1,5 +1,15 @@
 import { json, Router } from "express";
-import { loginUser, logoutUser, registerUser ,RefreshAccessToken,changeUserCurrentPassword, getUser, updateUserCredential,changeUserAvatar,updateUserCoverImage} from "../controllers/user.controller.js";
+import { loginUser,
+     logoutUser, 
+     registerUser 
+     ,RefreshAccessToken,
+     changeUserCurrentPassword, 
+     getUser,
+      updateUserCredential,
+      changeUserAvatar,
+      updateUserCoverImage ,
+      getUserInfo,
+      getUserhistory} from "../controllers/user.controller.js";
 import {multer_upload} from "../middlewares/multer.middleware.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 const router=Router()
@@ -17,9 +27,11 @@ router.route("/refresh").post(RefreshAccessToken);
 router.route("/logout").post(verifyJWT,logoutUser);
 router.route("/changePassword").post(verifyJWT,changeUserCurrentPassword);
 router.route("/getUser").post(verifyJWT,getUser)
-router.route("/changeDetails").post(verifyJWT,updateUserCredential)
-router.route("/changeAvatar").post(multer_upload.single("avatar"),verifyJWT,changeUserAvatar)
-router.route("/changeCoverImage").post(multer_upload.single("coverImage"),verifyJWT,updateUserCoverImage)
+router.route("/changeDetails").patch(verifyJWT,updateUserCredential)// if we want to modify particular field
+router.route("/changeAvatar").patch(verifyJWT,multer_upload.single("avatar"),changeUserAvatar)
+router.route("/changeCoverImage").patch(verifyJWT,multer_upload.single("coverImage"),updateUserCoverImage)
+router.route("/channel/:username").get(verifyJWT,getUserInfo)
+router.route("/watchHistory").get(verifyJWT,getUserhistory)
 
 
 
