@@ -6,6 +6,8 @@ import { Api_res } from "../utils/Api_res.js";
 import { refreshToken } from "firebase-admin/app";
 import jwt from "jsonwebtoken"
 import { Subscription } from "../models/Subscriber.model.js";
+import { UserInfo } from "firebase-admin/auth";
+import mongoose from "mongoose";
 
 
 const generateRefreshAccessToken=async (userId)=>{
@@ -19,23 +21,23 @@ const generateRefreshAccessToken=async (userId)=>{
 const registerUser=asyncHandler( async (req,res)=>{
       
       const {username,email,fullName,password}=req.body
+
       
-
       if([username,email,fullName,password].some((field)=>field?.trim()==="")){throw new ApiError("All fields are compulsory",404)}
-
+      
       if(!email.includes("@"))
             {
             throw new ApiError("Please Enter valid Email address",400)
       }
-
-   const existedUser=await User.findOne({
-      $or : [{username} , {email}]
-   })
-
-   if(existedUser){
-      throw new ApiError("User Already exist",409)
-   }
-  const avatarLocalFilePath= req.files?.avatar[0]?.path // avatar[0] it means avatar first property first 
+      
+      const existedUser=await User.findOne({
+         $or : [{username} , {email}]
+      })
+      
+      if(existedUser){
+         throw new ApiError("User Already exist",409)
+      }
+      const avatarLocalFilePath= req.files?.avatar[0]?.path // avatar[0] it means avatar first property first 
 
   let coverImageLocalFilePath= null // avatar[0] it means avatar first property first 
 
@@ -47,13 +49,13 @@ if(!(req.files.coverImage[0]>0)){
   
   if(!avatarLocalFilePath){throw new ApiError("Avatar is compulsory",400)}
    
-   const firebasefilepath_avatar=req.files.avatar[0].originalname
-   const firebasefilepath_coverImage=req.files.coverImage[0].originalname
+   const firebasefilepath_avatar=req.files?.avatar[0].originalname
+   const firebasefilepath_coverImage=req.files?.coverImage[0].originalname
    const Avatar= await uploadToFirebase(avatarLocalFilePath,firebasefilepath_avatar)
    const CoverImage= await uploadToFirebase(coverImageLocalFilePath,firebasefilepath_coverImage)
    
    if(!Avatar){throw new ApiError("Avatr is not upload successfully",501)}
-   
+
    let userDetails= await User.create({
       fullName,
       avatar:Avatar,
@@ -63,6 +65,7 @@ if(!(req.files.coverImage[0]>0)){
       email,
       refreshToken:User.generateRefreshToken
    })
+
    const createdUser=await User.findById(userDetails._id).select(" -password -refreshToken")
    
    if(!createdUser){throw new ApiError("Server mistake ",500 )}
@@ -72,6 +75,8 @@ if(!(req.files.coverImage[0]>0)){
 })
 const loginUser=asyncHandler(async (req,res)=>{
    const {password,username,email}=req.body
+
+   
    if(!(username||email)){throw new ApiError("Please Enter Username or Email",400)}
 const user= await User.findOne({
    $or:[{email},{username}]
@@ -197,14 +202,17 @@ const updateUserCoverImage=asyncHandler(async (req,res)=>{
   res.status(200).json({"message":"CoverImage is Successfully uploaded"})
 })
 const getUserInfo=asyncHandler(async (req,res)=>{
-   const {username}=req.param
-   if(!username){
+   const {username}=req.params
+   if(!username?.trim()){
 
       throw new ApiError("Invalid Request",404)
    }
+   console.log(username.toLowerCase())
   const channel=await User.aggregate([
    {
-      $match:{username:username?.toLowerCase()}
+      $match:{
+         username:username
+      }
    },
    {
       $lookup:{
@@ -257,10 +265,12 @@ const getUserInfo=asyncHandler(async (req,res)=>{
 res.status(200).json( new Api_res(200,channel[0],"the info of user"))
 })
 const getUserhistory=asyncHandler(async (req,res)=>{
-const History=User.aggregate([
+
+const History=await User.aggregate([
    {
-      $match:
-      {username:req.user?.username?.toLowerCase()
+      $match: 
+      {
+         _id:new mongoose.Types.ObjectId(req.user._id)
 
       }
    },
@@ -269,31 +279,40 @@ const History=User.aggregate([
          from:"videos",
          foreignField:"_id",
          localField:"watchHistory",
-         as:"UserHistory",
+         as:"watchHistory",
          pipeline:[
             {
                $lookup:{
                   from:"User",
                   localField:"owner",
                   foreignField:"_id",
-                  as:"userInfo",
+                  as:"owner",
                   pipeline:[
                      {
-                        project:{
+                        $project:{
                            username:1,
                            email:1,
                            fullName:1,
                            avatar:1
                         }
                      }
-                  ]
+                  ],
+               
+                    
+                  
+                  }
+               },
+               {
+                  $addFields:{
+                     userInfo:{
+                        $first:"$owner"
+                     }}
                }
-            }
          ]
       }
    }
 ])
-return res.status(200).json(200,History,"User History")
+return res.status(200).json(new Api_res(200,History[0].watchHistory,"User History"))
 
 })
 export {registerUser

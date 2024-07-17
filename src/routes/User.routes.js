@@ -10,16 +10,24 @@ import { loginUser,
       updateUserCoverImage ,
       getUserInfo,
       getUserhistory} from "../controllers/user.controller.js";
-import {multer_upload} from "../middlewares/multer.middleware.js"
-import {verifyJWT} from "../middlewares/auth.middleware.js"
+      import {verifyJWT} from "../middlewares/auth.middleware.js"
+      import {multer_upload} from "../middlewares/multer.middleware.js"
 const router=Router()
 
-router.route("/reg").post(
-multer_upload.fields([
-    {name : "avatar",maxCount:1},
-    {name:"coverImage",maxCount:1}
-])
-,registerUser)
+router.route("/reg").post((res,req,next)=>{console.log("testing");next()},
+    multer_upload.fields([
+        {
+            name: "avatar",
+            maxCount: 1
+        }, 
+        {
+            name: "coverImage",
+            maxCount: 1
+        }
+    ]),
+    registerUser
+    )
+
 router.route("/login").post(loginUser)
 
 //secure route
